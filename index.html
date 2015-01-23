@@ -10,7 +10,10 @@
 	<meta name="viewport" content="initial-scale=1 maximum-scale=1 user-scalable=0 minimal-ui" />
 	<link rel="stylesheet" href="stylesheet.css" type="text/css" />
 
-    <!--<script src="src/require.js" data-main="src/loader"></script>-->
+    <script src="phaser.js"></script>
+	<script src="boot.js"></script>
+	<script src="game.js"></script>
+
 </head>
 <body>
     <script>
@@ -26,6 +29,15 @@
 
 	<div id="game"></div>
 	<div id="orientation"></div>
+
+	<script language="javascript">
+		var game = new Phaser.Game(1024, 768, Phaser.AUTO, 'game');
+
+		game.state.add('Boot', GameBoot);
+		game.state.add('Game', Game);
+
+		game.state.start('Boot');
+	</script>
 
 </body>
 </html>
