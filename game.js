@@ -38,7 +38,12 @@ var Logic = {
         fill: '#af111c',
         color: '#af111c',
         align: 'center'
-    }
+    },
+    inputMixMatrix: [
+        [1/2, 1/2, 0],
+        [0, 1/2, 0],
+        [0, 0, 1/2]
+    ]
 };
 
 Logic.barSpacing = (2*Logic.planetRadius - 3 * Logic.barWidth) / 2;
@@ -88,9 +93,11 @@ Logic.dateFormat = function (timestamp) {
 Logic.model = function(inputs, previousOutputs, elapsed) {
     var outputs = inputs;
 
+    var inputsAfterMix = Logic.multiplyMatrix(Logic.inputMixMatrix, [inputs])[0];
+
     for (var inputIndex in inputs) {
         if (inputs.hasOwnProperty(inputIndex)) {
-            outputs[inputIndex] = Logic.parameterDelay(previousOutputs[inputIndex], inputs[inputIndex] / 3, elapsed) ;
+            outputs[inputIndex] = Logic.outputLimiter(Logic.parameterDelay(previousOutputs[inputIndex], inputsAfterMix[inputIndex], elapsed));
         }
     }
 
@@ -137,6 +144,19 @@ Logic.scaleBarsByOutputs = function (outputs, bars) {
 Logic.parameterDelay = function (currentValue, targetValue, elapsed) {
     return currentValue/(1 + elapsed/Logic.modelParameterInertia) +
         targetValue/(1 + Logic.modelParameterInertia/elapsed);
+};
+
+/**
+ *
+ * @param {number} output
+ */
+Logic.outputLimiter = function (output) {
+    var result = output;
+
+    result = Math.max(result, 0);
+    result = Math.min(result, 1);
+
+    return result;
 };
 
 /**
@@ -240,12 +260,6 @@ var Orb = function (game, orbId, baseRotation) {
 var Game = function (game) {};
 
 Game.prototype = {
-
-    preload: function () {
-
-
-
-    },
 
     create: function () {
 
