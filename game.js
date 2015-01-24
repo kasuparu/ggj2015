@@ -233,7 +233,6 @@ Game.prototype = {
             if (self.orbKeys.hasOwnProperty(orbKeyIndex)) {
                 self.orbKeys[orbKeyIndex].onDown.add(self.addOrbFunctions[orbKeyIndex], this);
             }
-
         }
 
         /**
@@ -266,9 +265,28 @@ Game.prototype = {
             return result;
         };
 
+        self.planetToggleKey = self.game.input.keyboard.addKey(
+            Phaser.Keyboard.P
+        );
+
+        self.selectPlanet = function (planetName) {
+            if (self.planet) {
+                self.planet.destroy(true);
+            }
+
+            self.planet = self.game.add.sprite(Logic.planetCenter[0] - Logic.planetRadius, Logic.planetCenter[1] - Logic.planetRadius, planetName);
+        };
+
+        self.planetSelected = 'planet';
+
+        self.planetToggleKey.onDown.add(function () {
+            self.planetSelected = self.planetSelected !== 'planet' ? 'planet' : 'planet-2';
+            self.selectPlanet(self.planetSelected);
+        }, this);
+
         self.game.world.setBounds(0, 0, 1024, 768);
         self.space = self.game.add.tileSprite(0, 0, 1024, 768, 'space');
-        self.planet = game.add.sprite(Logic.planetCenter[0] - Logic.planetRadius, Logic.planetCenter[1] - Logic.planetRadius, 'planet');
+        self.selectPlanet(self.planetSelected);
 
         console.log(JSON.stringify(self.getModelInputs()));
 
