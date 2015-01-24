@@ -23,7 +23,7 @@ var Logic = {
     messages: { // war, love, work
         maxThreshold: [
             'died of destruction',
-            '',
+            'overpopulation',
             'died of pollution'
         ],
         minThreshold: [
@@ -40,7 +40,7 @@ var Logic = {
         align: 'center'
     },
     inputMixMatrix: [
-        [1/2, -1/4, -1/4],
+        [1, -1/4, -1/4],
         [0, 2/3, 0],
         [0, 0, 2/3]
     ]
