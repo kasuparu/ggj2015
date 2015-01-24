@@ -22,14 +22,14 @@ var Logic = {
     gameOverMinThreshold: 0.03,
     messages: { // war, love, work
         maxThreshold: [
-            'died of destruction',
+            'self-destruction',
             'overpopulation',
-            'died of pollution'
+            'pollution'
         ],
         minThreshold: [
             '',
-            'died of depression',
-            'died of starvation'
+            'extinction',
+            'starvation'
         ],
         ggwp: 'ggwp'
     },
