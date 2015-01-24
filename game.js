@@ -404,6 +404,15 @@ Game.prototype = {
         self.space = self.game.add.tileSprite(0, 0, 1024, 768, 'space');
         self.selectPlanet(self.planetSelected);
 
+        self.helpText = self.game.add.text(
+            1024/2,
+            100,
+            'Use Q, W, E to manage Earth. Live long & prosper!',
+            {font: '24px Arial', fill: '#dddddd', align: 'center'}
+        );
+
+        self.helpText.anchor.set(0.5, 0.5);
+
         /**
          * @type {Phaser.Graphics[]}
          */
