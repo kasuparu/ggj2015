@@ -8,6 +8,9 @@ GameBoot.prototype = {
 
         this.load.image('space', 'images/space.png');
         this.load.image('planet', 'images/planet.png');
+        this.load.image('war-orb', 'images/war-orb.png');
+        this.load.image('love-orb', 'images/love-orb.png');
+        this.load.image('work-orb', 'images/work-orb.png');
 
     },
 
