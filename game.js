@@ -1,8 +1,7 @@
 /*global Phaser */
 
 /**
- *
- * @type {{epsilonDegrees: number, orbEllipseYX: number, orbRotationRadius: number, orbRotationPerMs: number, planetCenter: *[], orbRotationCenter: *[], planetRadius: number, orbRadius: number, timeScale: number}}
+ * @type {{epsilonDegrees: number, orbEllipseYX: number, orbRotationRadius: number, orbRotationPerMs: number, planetCenter: *[], orbRotationCenter: *[], planetRadius: number, orbRadius: number, timeScale: number, barWidth: number, barLength: number, barSpacing: number, barUnderDiff: number, modelParameterInertia: number}}
  */
 var Logic = {
     'epsilonDegrees': 0.001,
@@ -13,8 +12,15 @@ var Logic = {
     'orbRotationCenter': [Math.round(1024/3*2), Math.round(768/3)],
     'planetRadius': 200,
     'orbRadius': 32,
-    'timeScale': 365.25/12 * 86400
+    'timeScale': 365.25/12 * 86400,
+    'barWidth': 48,
+    'barLength': 256,
+    'barSpacing': 120,
+    'barUnderDiff': 8,
+    'modelParameterInertia': 8000
 };
+
+Logic.barSpacing = (2*Logic.planetRadius - 3 * Logic.barWidth) / 2;
 
 /**
  * Makes rotation to be -180 <= x <= 180
@@ -52,18 +58,29 @@ Logic.dateFormat = function (timestamp) {
     return years + '-' + (months[1]?months:"0"+months[0]) + '-' + (days[1]?days:"0"+days[0]);
 };
 
-Logic.model = function(inputs) {
+/**
+ * @param {number[]} inputs
+ * @param {number[]} previousOutputs
+ * @param {number} elapsed
+ * @returns {number[]}
+ */
+Logic.model = function(inputs, previousOutputs, elapsed) {
     var outputs = inputs;
 
-    for (var outputIndex in outputs) {
-        if (outputs.hasOwnProperty(outputIndex)) {
-            outputs[outputIndex] /= 3;
+    for (var inputIndex in inputs) {
+        if (inputs.hasOwnProperty(inputIndex)) {
+            outputs[inputIndex] = Logic.parameterDelay(previousOutputs[inputIndex], inputs[inputIndex] / 3, elapsed) ;
         }
     }
 
     return outputs;
 };
 
+/**
+ * @param {Array} m1
+ * @param {Array} m2
+ * @returns {Array}
+ */
 Logic.multiplyMatrix = function (m1, m2) {
     var result = [];
     for(var j = 0; j < m2.length; j++) {
@@ -77,6 +94,28 @@ Logic.multiplyMatrix = function (m1, m2) {
         }
     }
     return result;
+};
+
+/**
+ *
+ * @param {number[]} outputs
+ * @param {Phaser.Graphics[]} bars
+ */
+Logic.scaleBarsByOutputs = function (outputs, bars) {
+    outputs.forEach(function (output, index) {
+        bars[index].scale.x = output;
+    });
+};
+
+/**
+ * @param {number} currentValue
+ * @param {number} targetValue
+ * @param {number} elapsed
+ * @returns {number}
+ */
+Logic.parameterDelay = function (currentValue, targetValue, elapsed) {
+    return currentValue/(1 + elapsed/Logic.modelParameterInertia) +
+        targetValue/(1 + Logic.modelParameterInertia/elapsed);
 };
 
 /**
@@ -169,13 +208,21 @@ Game.prototype = {
         var self = this;
 
         /**
-         *
          * @type {Orb[]}
          */
         self.possibleOrbs = [
             new Orb(self.game, 'war', 0),
             new Orb(self.game, 'love', 2*Math.PI/3),
             new Orb(self.game, 'work', 4*Math.PI/3)
+        ];
+
+        /**
+         * @type {number[]}
+         */
+        self.orbColors = [
+            0xe62839,
+            0xffaec9,
+            0x9f9f9f
         ];
 
         /**
@@ -269,6 +316,9 @@ Game.prototype = {
             Phaser.Keyboard.P
         );
 
+        /**
+         * @param {string} planetName
+         */
         self.selectPlanet = function (planetName) {
             if (self.planet) {
                 self.planet.destroy(true);
@@ -277,6 +327,9 @@ Game.prototype = {
             self.planet = self.game.add.sprite(Logic.planetCenter[0] - Logic.planetRadius, Logic.planetCenter[1] - Logic.planetRadius, planetName);
         };
 
+        /**
+         * @type {string}
+         */
         self.planetSelected = 'planet';
 
         self.planetToggleKey.onDown.add(function () {
@@ -288,10 +341,46 @@ Game.prototype = {
         self.space = self.game.add.tileSprite(0, 0, 1024, 768, 'space');
         self.selectPlanet(self.planetSelected);
 
+        /**
+         * @type {Phaser.Graphics[]}
+         */
+        self.bars = [];
+        self.underBars = [];
+
+        /**
+         * @type {Phaser.Sprite[]}
+         */
+        self.barIcons = [];
+
+        self.possibleOrbs.forEach(function (orb, orbIndex) {
+            var positionY = Logic.planetCenter[1] - Logic.planetRadius + Logic.barWidth/2*3 + orbIndex * Logic.barSpacing;
+
+            self.underBars[orbIndex] = self.game.add.graphics(100 - Logic.barUnderDiff/2, positionY);
+            self.underBars[orbIndex].lineStyle(Logic.barWidth + Logic.barUnderDiff, 0x464646, 1);
+            self.underBars[orbIndex].moveTo(0, 0);
+            self.underBars[orbIndex].lineTo(Logic.barLength + Logic.barUnderDiff, 0);
+
+            self.bars[orbIndex] = self.game.add.graphics(100, positionY);
+            self.bars[orbIndex].lineStyle(Logic.barWidth, self.orbColors[orbIndex], 1);
+            self.bars[orbIndex].moveTo(0, 0);
+            self.bars[orbIndex].lineTo(Logic.barLength, 0);
+
+            self.barIcons[orbIndex] = self.game.add.sprite(20 + Logic.orbRadius, positionY, orb.id + '-orb');
+            self.barIcons[orbIndex].anchor.setTo(0.5, 0.5);
+        });
+
         console.log(JSON.stringify(self.getModelInputs()));
 
         self.game.time.advancedTiming = true;
 
+        /**
+         * @type {number[]}
+         */
+        self.modelOutputs = [];
+
+        self.possibleOrbs.forEach(function (orb, orbIndex) {
+            self.modelOutputs[orbIndex] = self.getModelInputs()[orbIndex] / 3;
+        });
     },
 
     update: function () {
@@ -302,6 +391,8 @@ Game.prototype = {
             orb.update(self.game.time.elapsedMS);
         });
 
+        self.modelOutputs = Logic.model(self.getModelInputs(), self.modelOutputs, self.game.time.elapsedMS);
+
     },
 
     render: function () {
@@ -310,8 +401,8 @@ Game.prototype = {
 
         var debugObj = {};
 
-        debugObj.fps = self.game.time.fps;
-        debugObj.modelOutputs = Logic.model(self.getModelInputs());
+        debugObj.fps = self.game.time.fps; // TODO Remove
+        debugObj.modelOutputs = self.modelOutputs; // TODO Remove
 
         var count = 0;
 
@@ -323,9 +414,11 @@ Game.prototype = {
 
         self.game.debug.text(
             Logic.dateFormat(Logic.getDateNow(self.game.time.now)),
-            Logic.planetCenter[0] - 50,
-            Logic.planetCenter[1] + Logic.planetRadius + 50
+            150,
+            Logic.planetCenter[1] - Logic.planetRadius - 50
         );
+
+        Logic.scaleBarsByOutputs(self.modelOutputs, self.bars);
 
     }
 
