@@ -484,8 +484,8 @@ Game.prototype = {
 
         var debugObj = {};
 
-        debugObj.fps = self.game.time.fps; // TODO Remove
-        debugObj.modelOutputs = self.modelOutputs; // TODO Remove
+        //debugObj.fps = self.game.time.fps;
+        //debugObj.modelOutputs = self.modelOutputs;
 
         var count = 0;
 
