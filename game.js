@@ -2,7 +2,7 @@
 
 /**
  *
- * @type {{epsilonDegrees: number, orbEllipseYX: number, orbRotationRadius: number, orbRotationPerMs: number, planetCenter: *[]}}
+ * @type {{epsilonDegrees: number, orbEllipseYX: number, orbRotationRadius: number, orbRotationPerMs: number, planetCenter: *[], orbRotationCenter: *[], planetRadius: number, orbRadius: number, timeScale: number}}
  */
 var Logic = {
     'epsilonDegrees': 0.001,
@@ -12,7 +12,8 @@ var Logic = {
     'planetCenter': [Math.round(1024/3*2), Math.round(768/3*2)],
     'orbRotationCenter': [Math.round(1024/3*2), Math.round(768/3)],
     'planetRadius': 200,
-    'orbRadius': 32
+    'orbRadius': 32,
+    'timeScale': 365.25/12 * 86400
 };
 
 /**
@@ -28,6 +29,53 @@ Logic.normalizeRotation = function (rotation) {
         result -= result / Math.abs(result) * 2 * Math.PI;
     }
 
+    return result;
+};
+
+/**
+ * @param {number} elapsed
+ * @returns {number}
+ */
+Logic.getDateNow = function (elapsed) {
+    return elapsed * Logic.timeScale + Date.now();
+};
+
+/**
+ * @param {number} timestamp
+ * @returns {string}
+ */
+Logic.dateFormat = function (timestamp) {
+    var date = new Date(timestamp);
+    var years = date.getFullYear().toString();
+    var months = (date.getMonth()+1).toString(); // getMonth() is zero-based
+    var days  = date.getDate().toString();
+    return years + '-' + (months[1]?months:"0"+months[0]) + '-' + (days[1]?days:"0"+days[0]);
+};
+
+Logic.model = function(inputs) {
+    var outputs = inputs;
+
+    for (var outputIndex in outputs) {
+        if (outputs.hasOwnProperty(outputIndex)) {
+            outputs[outputIndex] /= 3;
+        }
+    }
+
+    return outputs;
+};
+
+Logic.multiplyMatrix = function (m1, m2) {
+    var result = [];
+    for(var j = 0; j < m2.length; j++) {
+        result[j] = [];
+        for(var k = 0; k < m1[0].length; k++) {
+            var sum = 0;
+            for(var i = 0; i < m1.length; i++) {
+                sum += m1[i][k] * m2[j][i];
+            }
+            result[j].push(sum);
+        }
+    }
     return result;
 };
 
@@ -226,8 +274,6 @@ Game.prototype = {
 
         self.game.time.advancedTiming = true;
 
-        console.log('game!');
-
     },
 
     update: function () {
@@ -235,7 +281,7 @@ Game.prototype = {
         var self = this;
 
         self.orbs.forEach(function (orb) {
-            orb.update(self.game.time.elapsed);
+            orb.update(self.game.time.elapsedMS);
         });
 
     },
@@ -247,6 +293,7 @@ Game.prototype = {
         var debugObj = {};
 
         debugObj.fps = self.game.time.fps;
+        debugObj.modelOutputs = Logic.model(self.getModelInputs());
 
         var count = 0;
 
@@ -255,6 +302,12 @@ Game.prototype = {
                 self.game.debug.text(debugKey + ': ' + debugObj[debugKey], 32, ++count * 16);
             }
         }
+
+        self.game.debug.text(
+            Logic.dateFormat(Logic.getDateNow(self.game.time.now)),
+            Logic.planetCenter[0] - 50,
+            Logic.planetCenter[1] + Logic.planetRadius + 50
+        );
 
     }
 
