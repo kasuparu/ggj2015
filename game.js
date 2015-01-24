@@ -1,23 +1,44 @@
 /*global Phaser */
 
 /**
- * @type {{epsilonDegrees: number, orbEllipseYX: number, orbRotationRadius: number, orbRotationPerMs: number, planetCenter: *[], orbRotationCenter: *[], planetRadius: number, orbRadius: number, timeScale: number, barWidth: number, barLength: number, barSpacing: number, barUnderDiff: number, modelParameterInertia: number}}
+ * @type {{epsilonDegrees: number, orbEllipseYX: number, orbRotationRadius: number, orbRotationPerMs: number, planetCenter: *[], orbRotationCenter: *[], planetRadius: number, orbRadius: number, timeScale: number, barWidth: number, barLength: number, barSpacing: number, barUnderDiff: number, modelParameterInertia: number, gameOverMaxThreshold: number, gameOverMinThreshold: number, messages: {maxThreshold: string[], minThreshold: string[]}, finalMessageStyle: {font: string, fill: string, align: string}}}
  */
 var Logic = {
-    'epsilonDegrees': 0.001,
-    'orbEllipseYX': 0.15,
-    'orbRotationRadius': 300,
-    'orbRotationPerMs': 0.0001,
-    'planetCenter': [Math.round(1024/3*2), Math.round(768/3*2)],
-    'orbRotationCenter': [Math.round(1024/3*2), Math.round(768/3)],
-    'planetRadius': 200,
-    'orbRadius': 32,
-    'timeScale': 365.25/12 * 86400,
-    'barWidth': 48,
-    'barLength': 256,
-    'barSpacing': 120,
-    'barUnderDiff': 8,
-    'modelParameterInertia': 8000
+    epsilonDegrees: 0.001,
+    orbEllipseYX: 0.15,
+    orbRotationRadius: 300,
+    orbRotationPerMs: 0.0001,
+    planetCenter: [Math.round(1024/3*2), Math.round(768/3*2)],
+    orbRotationCenter: [Math.round(1024/3*2), Math.round(768/3)],
+    planetRadius: 200,
+    orbRadius: 32,
+    timeScale: 365.25/12 * 86400,
+    barWidth: 48,
+    barLength: 256,
+    barSpacing: 120,
+    barUnderDiff: 8,
+    modelParameterInertia: 8000,
+    gameOverMaxThreshold: 0.97,
+    gameOverMinThreshold: 0.03,
+    messages: { // war, love, work
+        maxThreshold: [
+            'died of destruction',
+            '',
+            'died of pollution'
+        ],
+        minThreshold: [
+            '',
+            'died of depression',
+            'died of starvation'
+        ],
+        ggwp: 'ggwp'
+    },
+    finalMessageStyle: {
+        font: '65px Arial',
+        fill: '#af111c',
+        color: '#af111c',
+        align: 'center'
+    }
 };
 
 Logic.barSpacing = (2*Logic.planetRadius - 3 * Logic.barWidth) / 2;
@@ -120,6 +141,29 @@ Logic.parameterDelay = function (currentValue, targetValue, elapsed) {
 
 /**
  *
+ * @param {number[]} outputs
+ * @returns {string}
+ */
+Logic.checkGameOver = function (outputs) {
+    var result = '';
+
+    for (var index in outputs) {
+        if (outputs.hasOwnProperty(index)) {
+            if (outputs[index] > Logic.gameOverMaxThreshold) {
+                result = Logic.messages.maxThreshold[index];
+            }
+
+            if (outputs[index] < Logic.gameOverMinThreshold) {
+                result = Logic.messages.minThreshold[index];
+            }
+        }
+    }
+
+    return result;
+};
+
+/**
+ *
  * @param {Phaser.Game} game
  * @param {string} orbId
  * @param {number} baseRotation
@@ -206,6 +250,11 @@ Game.prototype = {
     create: function () {
 
         var self = this;
+
+        /**
+         * @type {Phaser.Text[]}
+         */
+        self.texts = [];
 
         /**
          * @type {Orb[]}
@@ -352,6 +401,11 @@ Game.prototype = {
          */
         self.barIcons = [];
 
+        /**
+         * @type {Phaser.Text[]}
+         */
+        self.barIconTexts = [];
+
         self.possibleOrbs.forEach(function (orb, orbIndex) {
             var positionY = Logic.planetCenter[1] - Logic.planetRadius + Logic.barWidth/2*3 + orbIndex * Logic.barSpacing;
 
@@ -367,11 +421,22 @@ Game.prototype = {
 
             self.barIcons[orbIndex] = self.game.add.sprite(20 + Logic.orbRadius, positionY, orb.id + '-orb');
             self.barIcons[orbIndex].anchor.setTo(0.5, 0.5);
+
+            self.barIconTexts[orbIndex] = self.game.add.text(
+                20 + 1.7*Logic.orbRadius,
+                positionY + 10, self.orbChars[orbIndex],
+                {font: '20px Arial', fill: '#ffffff', align:'center'}
+            );
         });
 
         console.log(JSON.stringify(self.getModelInputs()));
 
         self.game.time.advancedTiming = true;
+
+        /**
+         * @type {string}
+         */
+        self.finalMessage = '';
 
         /**
          * @type {number[]}
@@ -392,6 +457,10 @@ Game.prototype = {
         });
 
         self.modelOutputs = Logic.model(self.getModelInputs(), self.modelOutputs, self.game.time.elapsedMS);
+
+        if (self.finalMessage = Logic.checkGameOver(self.modelOutputs)) {
+            self.game.paused = true;
+        }
 
     },
 
@@ -419,6 +488,20 @@ Game.prototype = {
         );
 
         Logic.scaleBarsByOutputs(self.modelOutputs, self.bars);
+
+        if (self.finalMessage) {
+            self.texts.push(
+                self.game.add.text(Logic.planetCenter[0], Logic.planetCenter[1] - 80, Logic.messages.ggwp, Logic.finalMessageStyle)
+            );
+
+            self.texts.push(
+                self.game.add.text(Logic.planetCenter[0], Logic.planetCenter[1], self.finalMessage, Logic.finalMessageStyle)
+            );
+
+            self.texts.forEach(function (text) {
+                text.anchor.set(0.5, 0.5);
+            });
+        }
 
     }
 
