@@ -289,6 +289,11 @@ Game.prototype = {
         ];
 
         /**
+         * @type {number}
+         */
+        self.warningColor = 0xffcc00;
+
+        /**
          * @type {string[]}
          */
         self.orbChars = ['Q', 'W', 'E'];
@@ -417,7 +422,21 @@ Game.prototype = {
          * @type {Phaser.Graphics[]}
          */
         self.bars = [];
+
+        /**
+         * @type {Phaser.Graphics[]}
+         */
         self.underBars = [];
+
+        /**
+         * @type {Phaser.Graphics[]}
+         */
+        self.barWarningsMin = [];
+
+        /**
+         * @type {Phaser.Graphics[]}
+         */
+        self.barWarningsMax = [];
 
         /**
          * @type {Phaser.Sprite[]}
@@ -436,6 +455,20 @@ Game.prototype = {
             self.underBars[orbIndex].lineStyle(Logic.barWidth + Logic.barUnderDiff, 0x464646, 1);
             self.underBars[orbIndex].moveTo(0, 0);
             self.underBars[orbIndex].lineTo(Logic.barLength + Logic.barUnderDiff, 0);
+
+            if ('' !== Logic.messages.minThreshold[orbIndex]) {
+                self.barWarningsMin[orbIndex] = self.game.add.graphics(100 + Logic.barLength * 0.05 - Logic.barUnderDiff/2, positionY);
+                self.barWarningsMin[orbIndex].lineStyle(Logic.barWidth + Logic.barUnderDiff, self.warningColor, 1);
+                self.barWarningsMin[orbIndex].moveTo(0, 0);
+                self.barWarningsMin[orbIndex].lineTo(Logic.barUnderDiff/2, 0);
+            }
+
+            if ('' !== Logic.messages.maxThreshold[orbIndex]) {
+                self.barWarningsMax[orbIndex] = self.game.add.graphics(100 + Logic.barLength * 0.95 - Logic.barUnderDiff/2, positionY);
+                self.barWarningsMax[orbIndex].lineStyle(Logic.barWidth + Logic.barUnderDiff, self.warningColor, 1);
+                self.barWarningsMax[orbIndex].moveTo(0, 0);
+                self.barWarningsMax[orbIndex].lineTo(Logic.barUnderDiff/2, 0);
+            }
 
             self.bars[orbIndex] = self.game.add.graphics(100, positionY);
             self.bars[orbIndex].lineStyle(Logic.barWidth, self.orbColors[orbIndex], 1);
