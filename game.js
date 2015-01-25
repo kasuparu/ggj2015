@@ -478,14 +478,16 @@ Game.prototype = {
             self.barIcons[orbIndex] = self.game.add.sprite(20 + Logic.orbRadius, positionY, orb.id + '-orb');
             self.barIcons[orbIndex].anchor.setTo(0.5, 0.5);
 
+            self.barIcons[orbIndex].inputEnabled = true;
+
+            self.barIcons[orbIndex].events.onInputDown.add(self.addOrbFunctions[orb.id], this);
+
             self.barIconTexts[orbIndex] = self.game.add.text(
                 20 + 1.7*Logic.orbRadius,
                 positionY + 10, self.orbChars[orbIndex],
                 {font: '20px Arial', fill: '#ffffff', align:'center'}
             );
         });
-
-        console.log(JSON.stringify(self.getModelInputs()));
 
         self.game.time.advancedTiming = true;
 
